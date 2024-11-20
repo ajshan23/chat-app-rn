@@ -6,6 +6,7 @@ const chatSlice = createSlice({
         conversations: {},
         messages: {},
         onlineUsers: [],
+        typingUsers: []
     },
     reducers: {
         setConversations(state, action) {
@@ -59,10 +60,51 @@ const chatSlice = createSlice({
             }
         },
         setOnlineUsers(state, action) {
+            console.log("online users set cheyyan monw");
+
             state.onlineUsers = action.payload;
+        },
+        setTypingUser(state, action) {
+            console.log("ibde");
+            // Add the user to the typingUsers list if they aren't already in the list
+            const { userId } = action.payload;
+            if (!state.typingUsers.includes(userId)) {
+                state.typingUsers.push(userId);
+            }
+            console.log("state.typingUsers:", state.typingUsers);
+        },
+        removeTypingUser(state, action) {
+            const { userId } = action.payload;
+            state.typingUsers = state.typingUsers.filter((id) => id !== userId);
+        },
+        updateMessageSeen(state, action) {
+            const { messageId, conversationId } = action.payload;
+            const messages = state.messages[conversationId];
+            console.log("if messagen munne");
+
+            if (messages) {
+                const messageIndex = messages.findIndex(msg => msg.messageId === messageId);
+                console.log("message index kittuo noka,", messageIndex, "::", typeof messageId);
+
+                if (messageIndex !== -1) {
+                    console.log("ivde if nte ullil");
+
+                    // Mark the message as seen
+                    messages[messageIndex].isRead = true;
+
+                    // Optionally, update unseen count
+                    if (state.conversations[conversationId]) {
+                        console.log("njan state ullil keri in updatetion of unseenCount");
+
+                        state.conversations[conversationId].unseenMessageCount = Math.max(0, state.conversations[conversationId].unseenMessageCount - 1);
+                    }
+                }
+            }
         }
     },
 });
 
-export const { setConversations, setMessages, addMessage, updateLastMessage, setOnlineUsers } = chatSlice.actions;
+// Change `setTypingUsers` to `setTypingUser` (or vice versa to match your preference)
+export const { setConversations, setMessages, addMessage, updateLastMessage, setOnlineUsers, setTypingUser, removeTypingUser, updateMessageSeen } = chatSlice.actions;
+
 export default chatSlice.reducer;

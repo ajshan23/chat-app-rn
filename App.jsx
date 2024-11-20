@@ -19,16 +19,18 @@ import AjmalTestScreen from './screens/Home/AjmalTestScreen';
 import SearchScreen from './screens/Search/SearchScreen';
 import { getData } from './conf/AsyncStore';
 import { io } from 'socket.io-client';
-import { addMessage, setOnlineUsers } from './redux/slice/chatSlice';
+import { addMessage, removeTypingUser, setOnlineUsers, setTypingUser, updateMessageSeen } from './redux/slice/chatSlice';
 import { base_url } from './conf/Constant';
 
-const Stack = createNativeStackNavigator();
 
+const Stack = createNativeStackNavigator();
+export let socket;
 const App = () => {
-  let socket;
+
   const dispatch = useDispatch();
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const userId = useSelector((state) => state.profile.userId);
+  const typing = useSelector((state) => state.chat.typingUsers);
   const tok = useSelector((state) => state.auth.token);
   console.log("isAuthenticated:", isAuthenticated);
   console.log("tok:", tok);
@@ -76,6 +78,9 @@ const App = () => {
       reconnectionAttempts: 10,
       timeout: 10000,
     });
+
+
+
     socket.on("connect", () => {
       console.log(
         'Socket.io connected with id:', socket.id
@@ -88,8 +93,22 @@ const App = () => {
       dispatch(setOnlineUsers(data))
     })
     socket.on("newMessage", (newMessage) => {
-      console.log("newMessage is comming:", newMessage);
+      // console.log("newMessage is comming:", newMessage);
       dispatch(addMessage(newMessage));
+    });
+
+    socket.on("userTyping", (data) => {
+      console.log("typing::", data);
+      dispatch(setTypingUser({ userId: data.from }))
+      console.log("typing fromapp.jsx", typing);
+
+    })
+    socket.on("userTypingStopped", (data) => {
+      console.log("typingremoved::", data);
+      dispatch(removeTypingUser({ userId: data.from }))
+    })
+    socket.on("messageSeenNotification", (data) => {
+      dispatch(updateMessageSeen({ messageId: data.messageId, conversationId: data.conversationId }))
     })
     return () => {
       socket.disconnect();

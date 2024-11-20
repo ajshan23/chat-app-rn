@@ -18,7 +18,8 @@ const ChatScreen = () => {
     const dispatch = useDispatch()
     const onlineUsers = useSelector((state) => state.chat.onlineUsers);
     const conversations = Object.values(useSelector((state) => state.chat.conversations));
-    console.log("OnlineUsers", onlineUsers);
+    const typingUsers = Object.values(useSelector((state) => state.chat.typingUsers));
+    console.log("typingusers", typingUsers);
 
     const fetchConversations = async () => {
         const response = await api.get("/chat/get-conversations");
@@ -60,7 +61,7 @@ const ChatScreen = () => {
         return `${month} ${day}, ${year}`;
     };
     const renderItem = ({ item }) => (
-        <TouchableOpacity style={styles.chatItem} onPress={() => navigation.navigate("ChatInterface", { item })}>
+        <TouchableOpacity style={styles.chatItem} onPress={() => navigation.navigate("ChatInterface", { item, })}>
             <TouchableOpacity style={{ position: "relative" }}>
                 <Image source={{
                     uri: item.participantImage
@@ -70,13 +71,16 @@ const ChatScreen = () => {
 
             <View style={styles.chatInfo}>
                 <Text style={styles.chatName}>{item.participantName}</Text>
-                <Text style={styles.chatLastMessage}>{item.lastMessage}</Text>
+
+                {typingUsers.includes(item?.participantId) ? (<Text style={styles.chatTyping}>Typing...</Text>) : (<Text style={styles.chatLastMessage}>{item.lastMessage}</Text>)}
             </View>
             <View style={{ alignContent: "center", justifyContent: "center", alignItems: "flex-end", gap: 10 }}>
                 <Text style={styles.chatTimestamp}>{formatUpdatedAt(item?.updatedAt)}</Text>
-                <View style={{ backgroundColor: "#F04A4C", width: 20, height: 20, borderRadius: 50, justifyContent: 'center', alignContent: "center", alignItems: "center" }}>
-                    <Text style={{ color: "white", fontSize: 10 }}>{item?.unseenMessageCount}</Text>
-                </View>
+                {item?.unseenMessageCount > 0 && (
+                    <View style={{ backgroundColor: "#F04A4C", width: 20, height: 20, borderRadius: 50, justifyContent: 'center', alignContent: "center", alignItems: "center" }}>
+                        <Text style={{ color: "white", fontSize: 10 }}>{item.unseenMessageCount}</Text>
+                    </View>
+                )}
             </View>
         </TouchableOpacity>
     );
@@ -212,6 +216,9 @@ const styles = StyleSheet.create({
     },
     chatLastMessage: {
         color: '#797C7B',
+    },
+    chatTyping: {
+        color: "#2BEF83"
     },
     chatTimestamp: {
         fontSize: 12,

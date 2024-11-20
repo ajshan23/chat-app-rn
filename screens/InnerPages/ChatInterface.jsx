@@ -5,6 +5,7 @@ import Message from '../../components/message/Message';
 import api from '../../api/axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { addMessage, setMessages, updateLastMessage } from '../../redux/slice/chatSlice';
+import { socket } from '../../App';
 
 const leftArrow = require('../../assets/navigation/leftArrow.png');
 const audioCall = require('../../assets/tools/call.png');
@@ -20,6 +21,7 @@ const { width, height } = Dimensions.get('window');
 export default function ChatInterface({ route }) {
     const { item } = route.params;
     const isOnline = useSelector((state) => state.chat.onlineUsers.includes(item?.participantId))
+    const isTyping = useSelector((state) => state.chat.typingUsers.includes(item?.participantId))
     const navigation = useNavigation();
     const dispatch = useDispatch();
     const [inputText, setInputText] = useState('');
@@ -29,12 +31,16 @@ export default function ChatInterface({ route }) {
     const logginedUserId = useSelector((state) => state.profile.userId);
     const scrollViewRef = useRef(null);
     const [isAtBottom, setIsAtBottom] = useState(true);
+    const [typingTimeout, setTypingTimeout] = useState(null);
     // console.log("loggined", logginedUserId);
 
     // Animated values for icons
     const cameraOpacity = useRef(new Animated.Value(1)).current;
     const microphoneOpacity = useRef(new Animated.Value(1)).current;
     const sentOpacity = useRef(new Animated.Value(0)).current;
+    const dot1Opacity = useRef(new Animated.Value(0)).current;
+    const dot2Opacity = useRef(new Animated.Value(0)).current;
+    const dot3Opacity = useRef(new Animated.Value(0)).current;
     useEffect(() => {
         if (messages.length === 0) {
             fetchMessages();
@@ -122,6 +128,21 @@ export default function ChatInterface({ route }) {
         }
     };
 
+    const handleTyping = (text) => {
+        setInputText(text);
+
+        if (typingTimeout) clearTimeout(typingTimeout);
+
+        // Emit 'typing' event
+        socket.emit('typing', { to: item?.participantId });
+
+        // Emit 'stopTyping' event after 1.5 seconds of no input
+        const timeout = setTimeout(() => {
+            socket.emit('stopTyping', { to: item?.participantId });
+        }, 1500);
+
+        setTypingTimeout(timeout);
+    };
 
 
 
@@ -169,7 +190,45 @@ export default function ChatInterface({ route }) {
                 }),
             ]).start();
         }
+
     }, [inputText]);
+
+    useEffect(() => {
+        const createAnimation = (opacityRef, delay) =>
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(opacityRef, {
+                        toValue: 1,
+                        duration: 500,
+                        useNativeDriver: true,
+                        delay,
+                    }),
+                    Animated.timing(opacityRef, {
+                        toValue: 0,
+                        duration: 500,
+                        useNativeDriver: true,
+                    }),
+                ])
+            );
+
+        const dot1Animation = createAnimation(dot1Opacity, 0);
+        const dot2Animation = createAnimation(dot2Opacity, 250);
+        const dot3Animation = createAnimation(dot3Opacity, 500);
+
+        dot1Animation.start();
+        dot2Animation.start();
+        dot3Animation.start();
+
+        return () => {
+            dot1Animation.stop();
+            dot2Animation.stop();
+            dot3Animation.stop();
+        };
+    }, [dot1Opacity, dot2Opacity, dot3Opacity]);
+
+
+
+
 
 
     return (
@@ -190,7 +249,15 @@ export default function ChatInterface({ route }) {
                     </TouchableOpacity>
                     <TouchableOpacity style={{ flex: 1 }}>
                         <Text style={{ fontSize: 16, fontWeight: 'bold', color: "black" }}>{item?.participantName}</Text>
-                        {isOnline && <Text style={{ color: '#797C7B', fontSize: 12 }}>Active now</Text>}
+                        {isOnline && !isTyping && <Text style={{ color: '#797C7B', fontSize: 12 }}>Active now</Text>}
+                        {/* {isTyping && <Text style={styles.chatTyping}>Typing...</Text>}
+                         */}
+                        {isTyping && <View style={styles.container}>
+                            <Text style={styles.chatTyping}>Typing</Text>
+                            <Animated.Text style={[styles.chatTyping, { opacity: dot1Opacity }]}>.</Animated.Text>
+                            <Animated.Text style={[styles.chatTyping, { opacity: dot2Opacity }]}>.</Animated.Text>
+                            <Animated.Text style={[styles.chatTyping, { opacity: dot3Opacity }]}>.</Animated.Text>
+                        </View>}
                     </TouchableOpacity>
                 </View>
                 {/* Icons for Call and Video */}
@@ -220,7 +287,7 @@ export default function ChatInterface({ route }) {
                 {/* Date Divider */}
                 {
                     messages && messages.map((message, index) => {
-                        return <Message key={index} sender={logginedUserId === message?.senderId ? "me" : "you"} text={message?.content} isSeen={message?.isRead} timestamp={message?.timestamp} messageId={message?.messageId} />
+                        return <Message key={index} sender={logginedUserId === message?.senderId ? "me" : "you"} text={message?.content} isRead={message?.isRead} timestamp={message?.timestamp} messageId={message?.messageId} conversationId={item?.conversationId} senderId={message?.senderId} />
                     })
                 }
             </ScrollView>
@@ -239,7 +306,7 @@ export default function ChatInterface({ route }) {
                         placeholderTextColor="#797C7B"
                         style={{ flex: 1, backgroundColor: '#F3F6F6', borderRadius: 15, color: "black", paddingHorizontal: 10 }}
                         value={inputText}
-                        onChangeText={text => setInputText(text)}
+                        onChangeText={handleTyping}
                     />
                 </View>
                 <View>
@@ -288,5 +355,22 @@ const styles = StyleSheet.create({
         width: width,
         height: height,
         position: "relative"
+    },
+    chatTyping: {
+        color: "#2BEF83"
+    },
+    container: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 2
+    },
+    text: {
+        fontSize: 16,
+        color: 'green', // Keep your original green color
+        marginRight: 2,
+    },
+    dot: {
+        fontSize: 16,
+        color: 'green', // Match the text color
     },
 });
