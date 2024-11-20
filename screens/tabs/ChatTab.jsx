@@ -5,7 +5,8 @@ import StorySection from '../../sections/StorySection/StorySection';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
 import api from '../../api/axios';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { setConversations } from '../../redux/slice/chatSlice';
 
 const drags = require('../../assets/tools/draggable.png');
 const user = require('../../assets/users/person2.png');
@@ -13,14 +14,16 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const ChatScreen = () => {
     const navigation = useNavigation();
-    const [conversations, setConversations] = useState([]);
+    // const [conversations, setConversations] = useState([]);
+    const dispatch = useDispatch()
     const onlineUsers = useSelector((state) => state.chat.onlineUsers);
+    const conversations = Object.values(useSelector((state) => state.chat.conversations));
     console.log("OnlineUsers", onlineUsers);
 
     const fetchConversations = async () => {
         const response = await api.get("/chat/get-conversations");
         if (response.status === 200) {
-            setConversations(response?.data?.conversations)
+            dispatch(setConversations(response?.data?.conversations))
         }
         console.log(response.data);
 

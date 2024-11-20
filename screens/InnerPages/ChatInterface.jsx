@@ -109,7 +109,7 @@ export default function ChatInterface({ route }) {
             if (response.status === 200) {
                 const { message, conversationId: updatedConversationId } = response.data;
                 dispatch(addMessage({ conversationId: updatedConversationId, message }));
-                dispatch(updateLastMessage({ conversationId: updatedConversationId, inputText }))
+                dispatch(updateLastMessage({ conversationId: updatedConversationId, lastMessage: inputText }))
                 // Optionally update the conversationId if it's new
                 item.conversationId = updatedConversationId;
                 setInputText('');

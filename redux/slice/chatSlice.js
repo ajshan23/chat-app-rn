@@ -9,8 +9,12 @@ const chatSlice = createSlice({
     },
     reducers: {
         setConversations(state, action) {
-            const { conversations } = action.payload;
-            state.conversations = conversations;
+            const conversationsArray = action.payload;
+
+            // Iterate through the array and ensure conversations are stored as an object keyed by `conversationId`
+            conversationsArray.forEach((convo) => {
+                state.conversations[convo.conversationId] = convo;
+            });
         },
         setMessages(state, action) {
             const { conversationId, messages } = action.payload;
@@ -18,6 +22,7 @@ const chatSlice = createSlice({
         },
         addMessage(state, action) {
             const { conversationId, message, participantId, participantName, participantImage } = action.payload;
+            console.log("action payload", message);
 
             // Initialize messages array for the conversation if it doesn't exist
             if (!state.messages[conversationId]) {

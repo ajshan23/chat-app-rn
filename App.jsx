@@ -9,7 +9,6 @@ import VerificationScreen from './screens/Auth/VerificationScreen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ChatInterface from './screens/InnerPages/ChatInterface';
 import Toast from 'react-native-toast-message';
-import * as Keychain from 'react-native-keychain';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginState, logoutState } from './redux/slice/authSlice';
@@ -20,7 +19,8 @@ import AjmalTestScreen from './screens/Home/AjmalTestScreen';
 import SearchScreen from './screens/Search/SearchScreen';
 import { getData } from './conf/AsyncStore';
 import { io } from 'socket.io-client';
-import { addMessage, setMessages, setOnlineUsers } from './redux/slice/chatSlice';
+import { addMessage, setOnlineUsers } from './redux/slice/chatSlice';
+import { base_url } from './conf/Constant';
 
 const Stack = createNativeStackNavigator();
 
@@ -68,7 +68,7 @@ const App = () => {
   useEffect(() => {
     checkAuthentication();
     isAuthenticated && fetchProfile();
-    socket = io("http://192.168.1.2:5000", {
+    socket = io(`${base_url}`, {
       autoConnect: isAuthenticated,
       query: {
         userId: userId
@@ -96,10 +96,6 @@ const App = () => {
       console.log('Socket disconnected on app unmount');
     }
   }, [userId, isAuthenticated]);
-
-
-
-
 
   return (
 
